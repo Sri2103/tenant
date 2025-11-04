@@ -1,0 +1,5 @@
+// buid code generator docker build
+docker build -t codegen:go1.24 -f gen.Dockerfile .
+
+// generate code 
+docker run --rm -v "${PWD}:/workspace" -w /workspace codegen:go1.24  scripts/update-codegen.sh

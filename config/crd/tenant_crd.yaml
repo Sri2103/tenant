@@ -1,0 +1,143 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: tenants.platform.myorg.io
+spec:
+  group: platform.myorg.io
+  scope: Namespaced
+  names:
+    plural: tenants
+    singular: tenant
+    kind: Tenant
+    shortNames:
+      - tnt
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Owner
+          type: string
+          jsonPath: .spec.owner
+        - name: Namespace
+          type: string
+          jsonPath: .spec.namespaceName
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: Monitoring
+          type: boolean
+          jsonPath: .spec.monitoring.enable
+      schema:
+        openAPIV3Schema:
+          type: object
+          description: "Defines the Tenant CRD for multi-tenant platform resource governance."
+          properties:
+            spec:
+              type: object
+              required:
+                - owner
+                - namespaceName
+              properties:
+                owner:
+                  type: string
+                  format: email
+                namespaceName:
+                  type: string
+                  pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+                  maxLength: 63
+                resourceQuota:
+                  type: object
+                  properties:
+                    cpu:
+                      type: string
+                      pattern: '^[0-9]+m?$'
+                    memory:
+                      type: string
+                    pods:
+                      type: integer
+                      minimum: 1
+                limitRange:
+                  type: object
+                  properties:
+                    defaultRequest:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+                    defaultLimit:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+                networkPolicy:
+                  type: object
+                  properties:
+                    allowNamespaces:
+                      type: array
+                      items:
+                        type: string
+                    denyExternal:
+                      type: boolean
+                      x-kubernetes-default: false
+                rbac:
+                  type: object
+                  properties:
+                    adminUsers:
+                      type: array
+                      items:
+                        type: string
+                        format: email
+                    viewerUsers:
+                      type: array
+                      items:
+                        type: string
+                        format: email
+                policy:
+                  type: object
+                  properties:
+                    enforceRegistry:
+                      type: string
+                    allowPrivileged:
+                      type: boolean
+                      x-kubernetes-default: false
+                monitoring:
+                  type: object
+                  properties:
+                    enable:
+                      type: boolean
+                      x-kubernetes-default: false
+                    labels:
+                      type: object
+                      additionalProperties:
+                        type: string
+            status:
+              type: object
+              properties:
+                phase:
+                  type: string
+                resourcesCreated:
+                  type: array
+                  items:
+                    type: string
+                conditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      status:
+                        type: string
+                        enum: ["True", "False", "Unknown"]
+                      reason:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
