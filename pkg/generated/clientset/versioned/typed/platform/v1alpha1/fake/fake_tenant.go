@@ -30,6 +30,7 @@ import (
 // FakeTenants implements TenantInterface
 type FakeTenants struct {
 	Fake *FakePlatformV1alpha1
+	ns   string
 }
 
 var tenantsResource = v1alpha1.SchemeGroupVersion.WithResource("tenants")
@@ -40,7 +41,8 @@ var tenantsKind = v1alpha1.SchemeGroupVersion.WithKind("Tenant")
 func (c *FakeTenants) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.Tenant, err error) {
 	emptyResult := &v1alpha1.Tenant{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetActionWithOptions(tenantsResource, name, options), emptyResult)
+		Invokes(testing.NewGetActionWithOptions(tenantsResource, c.ns, name, options), emptyResult)
+
 	if obj == nil {
 		return emptyResult, err
 	}
@@ -51,7 +53,8 @@ func (c *FakeTenants) Get(ctx context.Context, name string, options v1.GetOption
 func (c *FakeTenants) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.TenantList, err error) {
 	emptyResult := &v1alpha1.TenantList{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListActionWithOptions(tenantsResource, tenantsKind, opts), emptyResult)
+		Invokes(testing.NewListActionWithOptions(tenantsResource, tenantsKind, c.ns, opts), emptyResult)
+
 	if obj == nil {
 		return emptyResult, err
 	}
@@ -72,14 +75,16 @@ func (c *FakeTenants) List(ctx context.Context, opts v1.ListOptions) (result *v1
 // Watch returns a watch.Interface that watches the requested tenants.
 func (c *FakeTenants) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewRootWatchActionWithOptions(tenantsResource, opts))
+		InvokesWatch(testing.NewWatchActionWithOptions(tenantsResource, c.ns, opts))
+
 }
 
 // Create takes the representation of a tenant and creates it.  Returns the server's representation of the tenant, and an error, if there is any.
 func (c *FakeTenants) Create(ctx context.Context, tenant *v1alpha1.Tenant, opts v1.CreateOptions) (result *v1alpha1.Tenant, err error) {
 	emptyResult := &v1alpha1.Tenant{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateActionWithOptions(tenantsResource, tenant, opts), emptyResult)
+		Invokes(testing.NewCreateActionWithOptions(tenantsResource, c.ns, tenant, opts), emptyResult)
+
 	if obj == nil {
 		return emptyResult, err
 	}
@@ -90,7 +95,8 @@ func (c *FakeTenants) Create(ctx context.Context, tenant *v1alpha1.Tenant, opts 
 func (c *FakeTenants) Update(ctx context.Context, tenant *v1alpha1.Tenant, opts v1.UpdateOptions) (result *v1alpha1.Tenant, err error) {
 	emptyResult := &v1alpha1.Tenant{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateActionWithOptions(tenantsResource, tenant, opts), emptyResult)
+		Invokes(testing.NewUpdateActionWithOptions(tenantsResource, c.ns, tenant, opts), emptyResult)
+
 	if obj == nil {
 		return emptyResult, err
 	}
@@ -102,7 +108,8 @@ func (c *FakeTenants) Update(ctx context.Context, tenant *v1alpha1.Tenant, opts 
 func (c *FakeTenants) UpdateStatus(ctx context.Context, tenant *v1alpha1.Tenant, opts v1.UpdateOptions) (result *v1alpha1.Tenant, err error) {
 	emptyResult := &v1alpha1.Tenant{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceActionWithOptions(tenantsResource, "status", tenant, opts), emptyResult)
+		Invokes(testing.NewUpdateSubresourceActionWithOptions(tenantsResource, "status", c.ns, tenant, opts), emptyResult)
+
 	if obj == nil {
 		return emptyResult, err
 	}
@@ -112,13 +119,14 @@ func (c *FakeTenants) UpdateStatus(ctx context.Context, tenant *v1alpha1.Tenant,
 // Delete takes name of the tenant and deletes it. Returns an error if one occurs.
 func (c *FakeTenants) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteActionWithOptions(tenantsResource, name, opts), &v1alpha1.Tenant{})
+		Invokes(testing.NewDeleteActionWithOptions(tenantsResource, c.ns, name, opts), &v1alpha1.Tenant{})
+
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeTenants) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionActionWithOptions(tenantsResource, opts, listOpts)
+	action := testing.NewDeleteCollectionActionWithOptions(tenantsResource, c.ns, opts, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.TenantList{})
 	return err
@@ -128,7 +136,8 @@ func (c *FakeTenants) DeleteCollection(ctx context.Context, opts v1.DeleteOption
 func (c *FakeTenants) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.Tenant, err error) {
 	emptyResult := &v1alpha1.Tenant{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceActionWithOptions(tenantsResource, name, pt, data, opts, subresources...), emptyResult)
+		Invokes(testing.NewPatchSubresourceActionWithOptions(tenantsResource, c.ns, name, pt, data, opts, subresources...), emptyResult)
+
 	if obj == nil {
 		return emptyResult, err
 	}

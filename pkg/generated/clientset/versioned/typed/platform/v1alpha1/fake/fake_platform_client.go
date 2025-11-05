@@ -26,8 +26,8 @@ type FakePlatformV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakePlatformV1alpha1) Tenants() v1alpha1.TenantInterface {
-	return &FakeTenants{c}
+func (c *FakePlatformV1alpha1) Tenants(namespace string) v1alpha1.TenantInterface {
+	return &FakeTenants{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

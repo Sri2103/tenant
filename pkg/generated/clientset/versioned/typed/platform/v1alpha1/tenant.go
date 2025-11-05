@@ -30,7 +30,7 @@ import (
 // TenantsGetter has a method to return a TenantInterface.
 // A group's client should implement this interface.
 type TenantsGetter interface {
-	Tenants() TenantInterface
+	Tenants(namespace string) TenantInterface
 }
 
 // TenantInterface has methods to work with Tenant resources.
@@ -54,13 +54,13 @@ type tenants struct {
 }
 
 // newTenants returns a Tenants
-func newTenants(c *PlatformV1alpha1Client) *tenants {
+func newTenants(c *PlatformV1alpha1Client, namespace string) *tenants {
 	return &tenants{
 		gentype.NewClientWithList[*v1alpha1.Tenant, *v1alpha1.TenantList](
 			"tenants",
 			c.RESTClient(),
 			scheme.ParameterCodec,
-			"",
+			namespace,
 			func() *v1alpha1.Tenant { return &v1alpha1.Tenant{} },
 			func() *v1alpha1.TenantList { return &v1alpha1.TenantList{} }),
 	}

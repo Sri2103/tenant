@@ -39,5 +39,5 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 
 // Tenants returns a TenantInformer.
 func (v *version) Tenants() TenantInformer {
-	return &tenantInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+	return &tenantInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
