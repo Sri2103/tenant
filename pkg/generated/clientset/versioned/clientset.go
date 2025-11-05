@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"net/http"
 
-	platformv1alpha1 "github.com/sri2103/tenant/pkg/generated/clientset/versioned/typed/platform/v1alpha1"
+	platformv1alpha1 "github.com/sri2103/tenant-operator/pkg/generated/clientset/versioned/typed/platform/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

@@ -17,7 +17,7 @@
 package scheme
 
 import (
-	platformv1alpha1 "github.com/sri2103/tenant/pkg/apis/platform/v1alpha1"
+	platformv1alpha1 "github.com/sri2103/tenant-operator/pkg/apis/platform/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

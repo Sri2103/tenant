@@ -21,9 +21,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/sri2103/tenant/pkg/generated/clientset/versioned"
-	internalinterfaces "github.com/sri2103/tenant/pkg/generated/informers/externalversions/internalinterfaces"
-	platform "github.com/sri2103/tenant/pkg/generated/informers/externalversions/platform"
+	versioned "github.com/sri2103/tenant-operator/pkg/generated/clientset/versioned"
+	internalinterfaces "github.com/sri2103/tenant-operator/pkg/generated/informers/externalversions/internalinterfaces"
+	platform "github.com/sri2103/tenant-operator/pkg/generated/informers/externalversions/platform"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

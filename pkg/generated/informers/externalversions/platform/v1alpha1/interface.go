@@ -17,7 +17,7 @@
 package v1alpha1
 
 import (
-	internalinterfaces "github.com/sri2103/tenant/pkg/generated/informers/externalversions/internalinterfaces"
+	internalinterfaces "github.com/sri2103/tenant-operator/pkg/generated/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

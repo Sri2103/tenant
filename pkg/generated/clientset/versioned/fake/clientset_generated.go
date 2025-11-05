@@ -17,9 +17,9 @@
 package fake
 
 import (
-	clientset "github.com/sri2103/tenant/pkg/generated/clientset/versioned"
-	platformv1alpha1 "github.com/sri2103/tenant/pkg/generated/clientset/versioned/typed/platform/v1alpha1"
-	fakeplatformv1alpha1 "github.com/sri2103/tenant/pkg/generated/clientset/versioned/typed/platform/v1alpha1/fake"
+	clientset "github.com/sri2103/tenant-operator/pkg/generated/clientset/versioned"
+	platformv1alpha1 "github.com/sri2103/tenant-operator/pkg/generated/clientset/versioned/typed/platform/v1alpha1"
+	fakeplatformv1alpha1 "github.com/sri2103/tenant-operator/pkg/generated/clientset/versioned/typed/platform/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

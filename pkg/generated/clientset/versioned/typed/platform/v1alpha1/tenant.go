@@ -19,8 +19,8 @@ package v1alpha1
 import (
 	"context"
 
-	v1alpha1 "github.com/sri2103/tenant/pkg/apis/platform/v1alpha1"
-	scheme "github.com/sri2103/tenant/pkg/generated/clientset/versioned/scheme"
+	v1alpha1 "github.com/sri2103/tenant-operator/pkg/apis/platform/v1alpha1"
+	scheme "github.com/sri2103/tenant-operator/pkg/generated/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"

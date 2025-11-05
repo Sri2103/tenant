@@ -4,7 +4,7 @@ set -o nounset
 set -o pipefail
 
 SCRIPT_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
-MODULE=github.com/sri2103/tenant
+MODULE=github.com/sri2103/tenant-operator
 APIS_PKG=${MODULE}/pkg/apis
 OUTPUT_PKG=${MODULE}/pkg/generated
 OUTPUT_DIR=${SCRIPT_ROOT}/pkg/generated

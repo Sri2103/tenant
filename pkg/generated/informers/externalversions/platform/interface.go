@@ -17,8 +17,8 @@
 package platform
 
 import (
-	internalinterfaces "github.com/sri2103/tenant/pkg/generated/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/sri2103/tenant/pkg/generated/informers/externalversions/platform/v1alpha1"
+	internalinterfaces "github.com/sri2103/tenant-operator/pkg/generated/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/sri2103/tenant-operator/pkg/generated/informers/externalversions/platform/v1alpha1"
 )
 
 // Interface provides access to each of this group's versions.
