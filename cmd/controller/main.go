@@ -19,16 +19,10 @@ import (
 	"k8s.io/klog/v2"
 )
 
-var (
-	masterURL  string
-	kubeconfig string
-)
+
 
 func main() {
-	klog.InitFlags(nil)
-	// flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig file (if running outside cluster)")
-	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server (overrides kubeconfig)")
-	flag.Parse()
+
 
 	// ✅ Build Kubernetes and custom clients
 	// cfg, err := buildConfig(masterURL, kubeconfig)
@@ -69,12 +63,7 @@ func main() {
 	controller.Run(2, stopCh)
 }
 
-func buildConfig(masterURL, kubeconfig string) (*rest.Config, error) {
-	if kubeconfig != "" {
-		return clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
-	}
-	return rest.InClusterConfig()
-}
+
 
 func setupSignalHandler() <-chan struct{} {
 	stop := make(chan struct{})
