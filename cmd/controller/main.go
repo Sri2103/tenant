@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"os"
 	"os/signal"
 	"syscall"
@@ -14,22 +13,10 @@ import (
 
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 )
 
-var (
-	masterURL  string
-	kubeconfig string
-)
-
 func main() {
-	klog.InitFlags(nil)
-	// flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig file (if running outside cluster)")
-	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server (overrides kubeconfig)")
-	flag.Parse()
-
 	// ✅ Build Kubernetes and custom clients
 	// cfg, err := buildConfig(masterURL, kubeconfig)
 	cfg, err := setup.PrepareConfig()
@@ -67,13 +54,6 @@ func main() {
 
 	klog.Info("Starting Tenant controller workers")
 	controller.Run(2, stopCh)
-}
-
-func buildConfig(masterURL, kubeconfig string) (*rest.Config, error) {
-	if kubeconfig != "" {
-		return clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
-	}
-	return rest.InClusterConfig()
 }
 
 func setupSignalHandler() <-chan struct{} {
