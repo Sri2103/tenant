@@ -19,6 +19,7 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 )
@@ -55,6 +56,32 @@ func main() {
 	stopCh := setupSignalHandler(cancel)
 	go coreFactory.Start(stopCh)
 	go tenantFactory.Start(stopCh)
+
+	for t, synched := range coreFactory.WaitForCacheSync(stopCh) {
+		klog.Info(t)
+		if !synched {
+			klog.Fatalf("failed to sync informer for type %v", t)
+		}
+	}
+
+	klog.Info("completed the core factory sync")
+
+	for t, syched := range tenantFactory.WaitForCacheSync(stopCh) {
+		klog.Info(t)
+		if !syched {
+			klog.Fatalf("failed to sync informer for type %v", t)
+		}
+	}
+
+	klog.Info("completed the tenant factory sync")
+
+	if ok := cache.WaitForCacheSync(
+		ctx.Done(),
+		coreFactory.Core().V1().Nodes().Informer().HasSynced,
+		tenantFactory.Platform().V1alpha1().Tenants().Informer().HasSynced,
+	); !ok {
+		klog.Fatal("failed to sync both informer for type ")
+	}
 
 	scheme := runtime.NewScheme()
 	v1alpha1.Install(scheme)

@@ -74,6 +74,9 @@ func New(
 }
 
 func (c *Controller) enqueue(obj interface{}) {
+	fmt.Println("enqueing object")
+	fmt.Println(obj)
+
 	key, err := cache.MetaNamespaceIndexFunc(obj)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("failed to getkey from object:%w", err))
@@ -92,14 +95,6 @@ func (c *Controller) Run(ctx context.Context, workers int) error {
 	}
 
 	klog.InfoS("starting Tenant controller", "workers", workers)
-	klog.Info("waiting for informer cache to sync")
-
-	// waiting for informer cache to sync
-	if ok := cache.WaitForCacheSync(ctx.Done(), c.tenantInformer.Informer().HasSynced, c.nsInformer.Informer().HasSynced); !ok {
-		return fmt.Errorf("failed to load cached sync")
-	}
-
-	klog.Info("caches synced, starting workers")
 
 	// start worker go routine
 	for i := 0; i < workers; i++ {
