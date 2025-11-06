@@ -1,73 +1,89 @@
 package main
 
 import (
-	"log"
+	"flag"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/sri2103/tenant-operator/pkg/apis/platform/v1alpha1"
 	"github.com/sri2103/tenant-operator/pkg/controller"
-	"github.com/sri2103/tenant-operator/pkg/generated/clientset/versioned"
-	"github.com/sri2103/tenant-operator/pkg/generated/informers/externalversions"
+	clientset "github.com/sri2103/tenant-operator/pkg/generated/clientset/versioned"
+	platformInformers "github.com/sri2103/tenant-operator/pkg/generated/informers/externalversions"
 	"github.com/sri2103/tenant-operator/pkg/setup"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog/v2"
+)
+
+var (
+	masterURL  string
+	kubeconfig string
 )
 
 func main() {
-	config, err := setup.PrepareConfig()
-	// returned rest config
+	klog.InitFlags(nil)
+	// flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig file (if running outside cluster)")
+	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server (overrides kubeconfig)")
+	flag.Parse()
+
+	// ✅ Build Kubernetes and custom clients
+	// cfg, err := buildConfig(masterURL, kubeconfig)
+	cfg, err := setup.PrepareConfig()
 	if err != nil {
-		log.Fatalf("error loading config: %v", err)
+		klog.Fatalf("Error building kubeconfig: %v", err)
 	}
 
-	// core client
-	clientSet, err := kubernetes.NewForConfig(config)
+	kubeClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		log.Fatalf("Error build core client: %v", err.Error())
+		klog.Fatalf("Error building core Kubernetes clientset: %v", err)
 	}
 
-	// generate clientSet
-	customClient, err := versioned.NewForConfig(config)
+	platformClient, err := clientset.NewForConfig(cfg)
 	if err != nil {
-		log.Fatalf("Error building custom client: %v", err.Error())
+		klog.Fatalf("Error building platform clientset: %v", err)
 	}
 
-	coreFactory := informers.NewSharedInformerFactory(clientSet, 30*time.Second)
+	// ✅ Shared informer factories
+	kubeInformerFactory := informers.NewSharedInformerFactory(kubeClient, time.Minute*5)
+	platformInformerFactory := platformInformers.NewSharedInformerFactory(platformClient, time.Minute*5)
 
-	customFactory := externalversions.NewSharedInformerFactory(customClient, 30*time.Second)
+	// ✅ Tenant informer from generated code
+	tenantInformer := platformInformerFactory.Platform().V1alpha1().Tenants()
 
-	// end signals
-	sigterm := make(chan os.Signal, 1)
-	signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
+	// ✅ Create the controller
+	controller := controller.NewController(kubeClient, platformClient, tenantInformer)
 
-	// stop channel to block
-	stopCh := make(chan struct{})
+	// ✅ Signal handling
+	stopCh := setupSignalHandler()
 
-	go coreFactory.Start(stopCh)
-	go customFactory.Start(stopCh)
+	// ✅ Start informers and controller
+	klog.Info("Starting informer factories")
+	kubeInformerFactory.Start(stopCh)
+	platformInformerFactory.Start(stopCh)
 
-	{
-		scheme := runtime.NewScheme()
-		v1alpha1.Install(scheme)
+	klog.Info("Starting Tenant controller workers")
+	controller.Run(2, stopCh)
+}
 
-		rec := record.NewBroadcaster()
-		rec.StartRecordingToSink(&v1.EventSinkImpl{
-			Interface: clientSet.CoreV1().Events(""),
-		})
-
-		recorder := rec.NewRecorder(scheme, corev1.EventSource{Component: "tenant-controller"})
-		ctr := controller.New(clientSet, customClient, recorder)
-		go ctr.Run(stopCh, 10)
+func buildConfig(masterURL, kubeconfig string) (*rest.Config, error) {
+	if kubeconfig != "" {
+		return clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	}
+	return rest.InClusterConfig()
+}
 
-	log.Println("Tenant controller started 🚀")
-	<-sigterm
-	close(stopCh)
+func setupSignalHandler() <-chan struct{} {
+	stop := make(chan struct{})
+	sigCh := make(chan os.Signal, 2)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-sigCh
+		close(stop)
+	}()
+	return stop
 }
