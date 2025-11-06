@@ -115,48 +115,15 @@ func (c *Controller) processNextWorkItem() bool {
 }
 
 func (c *Controller) syncHandler(key string) error {
-	_, name, err := cache.SplitMetaNamespaceKey(key)
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		return err
 	}
 
-	tenant, err := c.tenantLister.Get(name)
+	tenant, err := c.tenantLister.Tenants(namespace).Get(name)
 	if err != nil {
 		return err
 	}
 
 	return c.reconcileTenant(context.Background(), tenant.DeepCopy())
-}
-
-// resyncAll enqueues all tenants periodically for reconciliation
-func (c *Controller) resyncAll(ctx context.Context) {
-	klog.Info("periodic resync: enqueing all tenants")
-	tenants, err := c.tenantLister.List(labels.Everything())
-	if err != nil {
-		klog.ErrorS(err, "failed to list tenants during resync")
-		return
-	}
-	for _, t := range tenants {
-		c.enqueue(t)
-	}
-}
-
-func containsString(slice []string, b string) bool {
-	for _, v := range slice {
-		if v == b {
-			return true
-		}
-	}
-	return false
-}
-
-func removeString(slice []string, b string) []string {
-	out := []string{}
-	for _, v := range slice {
-		if v == b {
-			continue
-		}
-		out = append(out, v)
-	}
-	return out
 }

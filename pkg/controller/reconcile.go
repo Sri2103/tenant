@@ -50,7 +50,7 @@ func (c *Controller) reconcileTenant(ctx context.Context, tenant *platformv1alph
 	// 6️⃣ Update Tenant status
 	tenant.Status.Phase = "Ready"
 	tenant.Status.ResourcesCreated = []string{"Namespace", "Quota", "RBAC"}
-	_, err := c.platformClient.PlatformV1alpha1().Tenants().UpdateStatus(ctx, tenant, metav1.UpdateOptions{})
+	_, err := c.platformClient.PlatformV1alpha1().Tenants(ns).UpdateStatus(ctx, tenant, metav1.UpdateOptions{})
 	return err
 }
 
