@@ -1,120 +1,88 @@
 package main
 
 import (
-	"context"
 	"flag"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/sri2103/tenant-operator/pkg/apis/platform/v1alpha1"
 	"github.com/sri2103/tenant-operator/pkg/controller"
-	"github.com/sri2103/tenant-operator/pkg/generated/clientset/versioned"
-	"github.com/sri2103/tenant-operator/pkg/generated/informers/externalversions"
+	clientset "github.com/sri2103/tenant-operator/pkg/generated/clientset/versioned"
+	platformInformers "github.com/sri2103/tenant-operator/pkg/generated/informers/externalversions"
 	"github.com/sri2103/tenant-operator/pkg/setup"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 )
 
+var (
+	masterURL  string
+	kubeconfig string
+)
+
 func main() {
-	threads := flag.Int("threads", 2, "Number of controller worker threads.")
+	klog.InitFlags(nil)
+	// flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig file (if running outside cluster)")
+	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server (overrides kubeconfig)")
+	flag.Parse()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	config, err := setup.PrepareConfig()
-	// returned rest config
+	// ✅ Build Kubernetes and custom clients
+	// cfg, err := buildConfig(masterURL, kubeconfig)
+	cfg, err := setup.PrepareConfig()
 	if err != nil {
-		log.Fatalf("error loading config: %v", err)
+		klog.Fatalf("Error building kubeconfig: %v", err)
 	}
 
-	// core client
-	clientSet, err := kubernetes.NewForConfig(config)
+	kubeClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		log.Fatalf("Error build core client: %v", err.Error())
+		klog.Fatalf("Error building core Kubernetes clientset: %v", err)
 	}
 
-	// generate clientSet
-	tenantClient, err := versioned.NewForConfig(config)
+	platformClient, err := clientset.NewForConfig(cfg)
 	if err != nil {
-		log.Fatalf("Error building custom client: %v", err.Error())
+		klog.Fatalf("Error building platform clientset: %v", err)
 	}
 
-	// setup informer factory
-	coreFactory := informers.NewSharedInformerFactory(clientSet, 30*time.Second)
-	tenantFactory := externalversions.NewSharedInformerFactory(tenantClient, 30*time.Second)
+	// ✅ Shared informer factories
+	kubeInformerFactory := informers.NewSharedInformerFactory(kubeClient, time.Minute*5)
+	platformInformerFactory := platformInformers.NewSharedInformerFactory(platformClient, time.Minute*5)
 
-	// signal channel to stop the running factory
-	stopCh := setupSignalHandler(cancel)
-	go coreFactory.Start(stopCh)
-	go tenantFactory.Start(stopCh)
+	// ✅ Tenant informer from generated code
+	tenantInformer := platformInformerFactory.Platform().V1alpha1().Tenants()
 
-	for t, synched := range coreFactory.WaitForCacheSync(stopCh) {
-		klog.Info(t)
-		if !synched {
-			klog.Fatalf("failed to sync informer for type %v", t)
-		}
-	}
+	// ✅ Create the controller
+	controller := controller.NewController(kubeClient, platformClient, tenantInformer)
 
-	klog.Info("completed the core factory sync")
+	// ✅ Signal handling
+	stopCh := setupSignalHandler()
 
-	for t, syched := range tenantFactory.WaitForCacheSync(stopCh) {
-		klog.Info(t)
-		if !syched {
-			klog.Fatalf("failed to sync informer for type %v", t)
-		}
-	}
+	// ✅ Start informers and controller
+	klog.Info("Starting informer factories")
+	kubeInformerFactory.Start(stopCh)
+	platformInformerFactory.Start(stopCh)
 
-	klog.Info("completed the tenant factory sync")
-
-	if ok := cache.WaitForCacheSync(
-		ctx.Done(),
-		coreFactory.Core().V1().Nodes().Informer().HasSynced,
-		tenantFactory.Platform().V1alpha1().Tenants().Informer().HasSynced,
-	); !ok {
-		klog.Fatal("failed to sync both informer for type ")
-	}
-
-	scheme := runtime.NewScheme()
-	v1alpha1.Install(scheme)
-
-	rec := record.NewBroadcaster()
-	rec.StartRecordingToSink(&v1.EventSinkImpl{
-		Interface: clientSet.CoreV1().Events(""),
-	})
-
-	recorder := rec.NewRecorder(scheme, corev1.EventSource{Component: "tenant-controller"})
-	ctr := controller.New(
-		clientSet,
-		tenantClient,
-		tenantFactory.Platform().V1alpha1().Tenants(),
-		coreFactory.Core().V1().Namespaces(),
-		recorder,
-	)
-
-	if err := ctr.Run(ctx, *threads); err != nil {
-		klog.Fatalf("❌ Error running controller: %v", err)
-	}
-
-	log.Println("Tenant controller started 🚀")
+	klog.Info("Starting Tenant controller workers")
+	controller.Run(2, stopCh)
 }
 
-func setupSignalHandler(cancel context.CancelFunc) <-chan struct{} {
+func buildConfig(masterURL, kubeconfig string) (*rest.Config, error) {
+	if kubeconfig != "" {
+		return clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
+	}
+	return rest.InClusterConfig()
+}
+
+func setupSignalHandler() <-chan struct{} {
 	stop := make(chan struct{})
+	sigCh := make(chan os.Signal, 2)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
 	go func() {
-		c := make(chan os.Signal, 2)
-		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-		<-c
-		klog.Info("🛑 Received termination signal. Shutting down gracefully...")
-		cancel()
+		<-sigCh
 		close(stop)
 	}()
 	return stop
