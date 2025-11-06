@@ -34,8 +34,8 @@ type PlatformV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *PlatformV1alpha1Client) Tenants() TenantInterface {
-	return newTenants(c)
+func (c *PlatformV1alpha1Client) Tenants(namespace string) TenantInterface {
+	return newTenants(c, namespace)
 }
 
 // NewForConfig creates a new PlatformV1alpha1Client for the given config.

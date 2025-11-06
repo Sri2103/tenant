@@ -127,3 +127,36 @@ func (c *Controller) syncHandler(key string) error {
 
 	return c.reconcileTenant(context.Background(), tenant.DeepCopy())
 }
+
+// resyncAll enqueues all tenants periodically for reconciliation
+func (c *Controller) resyncAll(ctx context.Context) {
+	klog.Info("periodic resync: enqueing all tenants")
+	tenants, err := c.tenantLister.List(labels.Everything())
+	if err != nil {
+		klog.ErrorS(err, "failed to list tenants during resync")
+		return
+	}
+	for _, t := range tenants {
+		c.enqueue(t)
+	}
+}
+
+func containsString(slice []string, b string) bool {
+	for _, v := range slice {
+		if v == b {
+			return true
+		}
+	}
+	return false
+}
+
+func removeString(slice []string, b string) []string {
+	out := []string{}
+	for _, v := range slice {
+		if v == b {
+			continue
+		}
+		out = append(out, v)
+	}
+	return out
+}

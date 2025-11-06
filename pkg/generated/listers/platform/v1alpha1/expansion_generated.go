@@ -19,3 +19,7 @@ package v1alpha1
 // TenantListerExpansion allows custom methods to be added to
 // TenantLister.
 type TenantListerExpansion interface{}
+
+// TenantNamespaceListerExpansion allows custom methods to be added to
+// TenantNamespaceLister.
+type TenantNamespaceListerExpansion interface{}

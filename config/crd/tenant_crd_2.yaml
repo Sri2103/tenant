@@ -5,41 +5,16 @@ metadata:
 spec:
   group: platform.myorg.io
   scope: Namespaced
-  names:
-    plural: tenants
-    singular: tenant
-    kind: Tenant
-    shortNames:
-      - tnt
   versions:
     - name: v1alpha1
       served: true
       storage: true
-      subresources:
-        status: {}
-      additionalPrinterColumns:
-        - name: Owner
-          type: string
-          jsonPath: .spec.owner
-        - name: Namespace
-          type: string
-          jsonPath: .spec.namespaceName
-        - name: Phase
-          type: string
-          jsonPath: .status.phase
-        - name: Monitoring
-          type: boolean
-          jsonPath: .spec.monitoring.enable
       schema:
         openAPIV3Schema:
           type: object
-          description: "Defines the Tenant CRD for multi-tenant platform resource governance."
           properties:
             spec:
               type: object
-              required:
-                - owner
-                - namespaceName
               properties:
                 owner:
                   type: string
@@ -58,7 +33,9 @@ spec:
                       type: string
                     pods:
                       type: integer
+                      format: int32
                       minimum: 1
+                  nullable: true
                 limitRange:
                   type: object
                   properties:
@@ -69,6 +46,7 @@ spec:
                           type: string
                         memory:
                           type: string
+                      nullable: true
                     defaultLimit:
                       type: object
                       properties:
@@ -76,6 +54,8 @@ spec:
                           type: string
                         memory:
                           type: string
+                      nullable: true
+                  nullable: true
                 networkPolicy:
                   type: object
                   properties:
@@ -85,6 +65,7 @@ spec:
                         type: string
                     denyExternal:
                       type: boolean
+                  nullable: true
                 rbac:
                   type: object
                   properties:
@@ -92,12 +73,11 @@ spec:
                       type: array
                       items:
                         type: string
-                        format: email
                     viewerUsers:
                       type: array
                       items:
                         type: string
-                        format: email
+                  nullable: true
                 policy:
                   type: object
                   properties:
@@ -105,6 +85,7 @@ spec:
                       type: string
                     allowPrivileged:
                       type: boolean
+                  nullable: true
                 monitoring:
                   type: object
                   properties:
@@ -114,6 +95,10 @@ spec:
                       type: object
                       additionalProperties:
                         type: string
+                  nullable: true
+              required:
+                - owner
+                - namespaceName
             status:
               type: object
               properties:
@@ -132,9 +117,36 @@ spec:
                         type: string
                       status:
                         type: string
-                        enum: ["True", "False", "Unknown"]
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
                       reason:
                         type: string
                       lastTransitionTime:
                         type: string
                         format: date-time
+                    required:
+                      - type
+                      - status
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Owner
+          type: string
+          jsonPath: .spec.owner
+        - name: Namespace
+          type: string
+          jsonPath: .spec.namespaceName
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: Monitoring
+          type: boolean
+          jsonPath: .spec.monitoring.enable
+  names:
+    plural: tenants
+    singular: tenant
+    kind: Tenant
+    shortNames:
+      - tn
