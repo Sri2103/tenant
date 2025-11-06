@@ -1,0 +1,62 @@
+apiVersion: platform.myorg.io/v1alpha1
+kind: Tenant
+metadata:
+  name: team-alpha
+  namespace: idp-system
+  labels:
+    app.kubernetes.io/part-of: idp
+    app.kubernetes.io/component: tenant
+spec:
+  owner: alice@myorg.io
+  namespaceName: team-alpha-ns
+
+  resourceQuota:
+    cpu: "2000m"
+    memory: "4Gi"
+    pods: 30
+
+  limitRange:
+    defaultRequest:
+      cpu: "250m"
+      memory: "256Mi"
+    defaultLimit:
+      cpu: "500m"
+      memory: "512Mi"
+
+  networkPolicy:
+    allowNamespaces:
+      - monitoring
+      - shared-services
+    denyExternal: true
+
+  rbac:
+    adminUsers:
+      - alice@myorg.io
+      - bob@myorg.io
+    viewerUsers:
+      - qa-team@myorg.io
+      - intern@myorg.io
+
+  policy:
+    enforceRegistry: "registry.myorg.io"
+    allowPrivileged: false
+
+  monitoring:
+    enable: true
+    labels:
+      team: alpha
+      env: production
+
+status:
+  phase: "Active"
+  resourcesCreated:
+    - "Namespace/team-alpha-ns"
+    - "ResourceQuota/team-alpha-quota"
+    - "LimitRange/team-alpha-limits"
+    - "NetworkPolicy/team-alpha-network"
+    - "RoleBinding/team-alpha-admin"
+  conditions:
+    - type: "Ready"
+      status: "True"
+      reason: "AllResourcesCreated"
+      lastTransitionTime: "2025-11-06T10:20:00Z"
