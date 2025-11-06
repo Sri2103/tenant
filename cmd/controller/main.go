@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"os"
 	"os/signal"
 	"syscall"
@@ -14,16 +13,10 @@ import (
 
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 )
 
-
-
 func main() {
-
-
 	// ✅ Build Kubernetes and custom clients
 	// cfg, err := buildConfig(masterURL, kubeconfig)
 	cfg, err := setup.PrepareConfig()
@@ -62,8 +55,6 @@ func main() {
 	klog.Info("Starting Tenant controller workers")
 	controller.Run(2, stopCh)
 }
-
-
 
 func setupSignalHandler() <-chan struct{} {
 	stop := make(chan struct{})
