@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/klog/v2"
 )
 
 func (c *Controller) syncHandler(key string) error {
@@ -18,7 +17,10 @@ func (c *Controller) syncHandler(key string) error {
 		return err
 	}
 
-	klog.Info(tenant, "fetched request item")
+	err = c.reconcileTenant(context.Background(), tenant.DeepCopy())
+	if err != nil {
+		return err
+	}
 
-	return c.reconcileTenant(context.Background(), tenant.DeepCopy())
+	return nil
 }

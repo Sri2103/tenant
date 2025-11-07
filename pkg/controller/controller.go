@@ -21,7 +21,7 @@ type Controller struct {
 	platformClient clientset.Interface
 	tenantLister   listers.TenantLister
 	tenantSynced   cache.InformerSynced
-	queue          workqueue.RateLimitingInterface
+	queue          workqueue.TypedRateLimitingInterface[any]
 }
 
 func NewController(
@@ -34,7 +34,7 @@ func NewController(
 		platformClient: platformClient,
 		tenantLister:   tenantInformer.Lister(),
 		tenantSynced:   tenantInformer.Informer().HasSynced,
-		queue:          workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "tenant"),
+		queue:          workqueue.NewNamedRateLimitingQueue(workqueue.DefaultTypedControllerRateLimiter[any](), "tenant"),
 	}
 
 	klog.Info("Setting up event handlers for Tenant controller")
@@ -49,7 +49,7 @@ func NewController(
 }
 
 func (c *Controller) enqueue(obj interface{}) {
-	klog.Info(obj, "starting enque")
+
 	key, err := cache.MetaNamespaceKeyFunc(obj)
 	if err != nil {
 		utilruntime.HandleError(err)
@@ -85,7 +85,6 @@ func (c *Controller) runWorker() {
 
 func (c *Controller) processNextWorkItem() bool {
 	obj, shutdown := c.queue.Get()
-	klog.Info(obj, "fetched to next item in queue")
 	if shutdown {
 		return false
 	}
@@ -93,7 +92,6 @@ func (c *Controller) processNextWorkItem() bool {
 	err := func(obj interface{}) error {
 		defer c.queue.Done(obj)
 		key, ok := obj.(string)
-		klog.Info(key, "key fetched here")
 		if !ok {
 			c.queue.Forget(obj)
 			utilruntime.HandleError(fmt.Errorf("expected string in queue but got %#v", obj))
