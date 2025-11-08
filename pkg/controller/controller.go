@@ -16,6 +16,13 @@ import (
 	"k8s.io/klog/v2"
 )
 
+const (
+	ControllerName     = "tenant-controller"
+	tenantFinalizer    = "platform.myorg.io/tenant-cleanup"
+	defaultWorkerCount = 2
+	defaultResync      = 10 * time.Minute
+)
+
 type Controller struct {
 	kubeClient     kubernetes.Interface
 	platformClient clientset.Interface
@@ -49,7 +56,6 @@ func NewController(
 }
 
 func (c *Controller) enqueue(obj interface{}) {
-
 	key, err := cache.MetaNamespaceKeyFunc(obj)
 	if err != nil {
 		utilruntime.HandleError(err)
@@ -62,16 +68,21 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	klog.Info("Starting Tenant controller")
+	klog.InfoS("Starting Tenant controller", "worker", threadiness)
+	klog.Info("waiting for informer cache to sync")
 
 	if ok := cache.WaitForCacheSync(stopCh, c.tenantSynced); !ok {
 		klog.Error("failed to wait for caches to sync")
 		return
 	}
 
+	klog.Info("caches synced, starting workers")
+
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
 	}
+
+	go wait.Until(c.syncPeriodic, defaultResync, stopCh)
 
 	klog.Info("Tenant controller is running")
 	<-stopCh

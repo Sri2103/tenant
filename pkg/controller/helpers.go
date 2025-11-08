@@ -18,3 +18,23 @@ func ignoreAlreadyExists(err error) error {
 	}
 	return err
 }
+
+func containsString(slice []string, b string) bool {
+	for _, v := range slice {
+		if v == b {
+			return true
+		}
+	}
+	return false
+}
+
+func removeString(slice []string, b string) []string {
+	out := []string{}
+	for _, v := range slice {
+		if v == b {
+			continue
+		}
+		out = append(out, v)
+	}
+	return out
+}
