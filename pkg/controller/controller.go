@@ -17,10 +17,9 @@ import (
 )
 
 const (
-	ControllerName     = "tenant-controller"
-	tenantFinalizer    = "platform.myorg.io/tenant-cleanup"
-	defaultWorkerCount = 2
-	defaultResync      = 10 * time.Minute
+	ControllerName  = "tenant-controller"
+	tenantFinalizer = "platform.myorg.io/tenant-cleanup"
+	defaultResync   = 10 * time.Minute
 )
 
 type Controller struct {
@@ -90,11 +89,13 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) {
 }
 
 func (c *Controller) runWorker() {
+	
 	for c.processNextWorkItem() {
 	}
 }
 
 func (c *Controller) processNextWorkItem() bool {
+
 	obj, shutdown := c.queue.Get()
 	if shutdown {
 		return false
@@ -110,15 +111,17 @@ func (c *Controller) processNextWorkItem() bool {
 		}
 
 		if err := c.syncHandler(key); err != nil {
+			klog.InfoS("sync error:", "err", err)
 			c.queue.AddRateLimited(key)
 			return fmt.Errorf("error syncing Tenant %q: %v", key, err)
 		}
 
 		c.queue.Forget(obj)
-		klog.Infof("Successfully synced Tenant %q", key)
+		// klog.Infof("Successfully synced Tenant %q", key)
 		return nil
 	}(obj)
 	if err != nil {
+		klog.InfoS("error after trying to sync", "err", err)
 		utilruntime.HandleError(err)
 	}
 

@@ -18,8 +18,9 @@ func (c *Controller) handleDeletion(ctx context.Context, tenant *v1alpha1.Tenant
 
 	// Delete namespace (best-effort)
 	if err := c.kubeClient.CoreV1().Namespaces().Delete(ctx, nsName, metav1.DeleteOptions{}); err != nil {
+		klog.InfoS("error for deleting the spec namespace", "err", err)
 		if !errors.IsNotFound(err) {
-			return fmt.Errorf("failed to delete namespace %s:%w", nsName, err)
+			return fmt.Errorf("failed to delete namespace of specs %s:%w", nsName, err)
 		}
 	}
 	klog.InfoS("Triggered namespace deletion for tenant", "namespace", nsName, "tenant", tenant.Name)

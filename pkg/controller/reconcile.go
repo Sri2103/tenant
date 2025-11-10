@@ -6,21 +6,24 @@ import (
 
 	platformv1alpha1 "github.com/sri2103/tenant-operator/pkg/apis/platform/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
 )
 
 func (c *Controller) reconcileTenant(ctx context.Context, tenant *platformv1alpha1.Tenant) error {
 	ns := tenant.Spec.NamespaceName
-	klog.Infof("Reconciling Tenant %s (namespace: %s)", tenant.Name, ns)
+	// klog.Infof("Reconciling Tenant %s (namespace: %s)", tenant.Name, ns)
 
 	// 1️⃣ Ensure Namespace
 	if err := c.ensureNamespace(ctx, tenant); err != nil {
+		klog.Error("ensure namespace error", err)
 		return err
 	}
 
 	// 2️⃣ Apply ResourceQuota
 	if tenant.Spec.ResourceQuota != nil {
 		if err := c.ensureResourceQuota(ctx, tenant); err != nil {
+			klog.Error("error ensuring resource quota", err)
 			return err
 		}
 	}
@@ -28,6 +31,7 @@ func (c *Controller) reconcileTenant(ctx context.Context, tenant *platformv1alph
 	// 3️⃣ Apply LimitRange
 	if tenant.Spec.LimitRange != nil {
 		if err := c.ensureLimitRange(ctx, tenant); err != nil {
+			klog.Error("ensuring limit range error:", err)
 			return err
 		}
 	}
@@ -35,6 +39,7 @@ func (c *Controller) reconcileTenant(ctx context.Context, tenant *platformv1alph
 	// 4️⃣ Apply NetworkPolicy
 	if tenant.Spec.NetworkPolicy != nil {
 		if err := c.ensureNetworkPolicy(ctx, tenant); err != nil {
+			klog.Error("network policy error:", err)
 			return err
 		}
 	}
@@ -42,6 +47,7 @@ func (c *Controller) reconcileTenant(ctx context.Context, tenant *platformv1alph
 	// 5️⃣ Apply RBAC
 	if tenant.Spec.RBAC != nil {
 		if err := c.ensureRBAC(ctx, tenant); err != nil {
+			klog.Error("tenant spec RBAC error", err)
 			return err
 		}
 	}
@@ -74,21 +80,25 @@ func (c *Controller) updateStatus(
 	resources []string,
 	reason string,
 ) error {
-	tn := tenant.DeepCopy()
-	tn.Status.Phase = phase
-	tn.Status.ResourcesCreated = resources
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		tn := tenant
+		tn.Status.Phase = phase
+		tn.Status.ResourcesCreated = resources
 
-	cond := platformv1alpha1.TenantCondition{
-		Type:               "Reconciled",
-		Status:             metav1.ConditionTrue,
-		Reason:             reason,
-		LastTransitionTime: metav1.Now(),
-	}
-	tn.Status.Conditions = append(tn.Status.Conditions, cond)
+		cond := platformv1alpha1.TenantCondition{
+			Type:               "Reconciled",
+			Status:             metav1.ConditionTrue,
+			Reason:             reason,
+			LastTransitionTime: metav1.Now(),
+		}
+		tn.Status.Conditions = append(tn.Status.Conditions, cond)
 
-	if _, err := c.platformClient.PlatformV1alpha1().Tenants(tn.Namespace).UpdateStatus(ctx, tn, metav1.UpdateOptions{}); err != nil {
-		return fmt.Errorf("failed to list tenents during sync")
-	}
-	klog.InfoS("successfully reconciled tenant", "tenant", tn.Name, "namespace", tn.Namespace)
-	return nil
+		if _, err := c.platformClient.PlatformV1alpha1().Tenants(tn.Namespace).Update(ctx, tn, metav1.UpdateOptions{}); err != nil {
+			klog.InfoS("error for updating the status of the tenants", "err", err)
+
+			return fmt.Errorf("failed to list tenents during sync")
+		}
+		// klog.InfoS("successfully reconciled tenant", "tenant", tn.Name, "namespace", tn.Namespace)
+		return nil
+	})
 }

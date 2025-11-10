@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -15,12 +16,19 @@ func (c *Controller) syncHandler(key string) error {
 	ctx := context.Background()
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
+		klog.Error("namespace key split error", err)
 		return err
 	}
 
 	tenant, err := c.tenantLister.Tenants(namespace).Get(name)
 	if err != nil {
-		return err
+		if errors.IsNotFound(err) {
+			klog.InfoS("tenant not present for sync", "key", key)
+			return nil
+		} else {
+			klog.Error("tenant fetch error:", err)
+			return err
+		}
 	}
 
 	tenantCopy := tenant.DeepCopy()
@@ -58,6 +66,7 @@ func (c *Controller) syncHandler(key string) error {
 
 	err = c.reconcileTenant(context.Background(), tenantCopy)
 	if err != nil {
+		klog.Error("tennat final reconciling error", err)
 		return err
 	}
 
@@ -74,6 +83,7 @@ func (c *Controller) syncPeriodic() {
 	}
 
 	for _, t := range tenants {
+		klog.InfoS("default sync for tenant", "tenant", t.Name)
 		c.enqueue(t)
 	}
 }
